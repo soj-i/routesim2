@@ -13,7 +13,7 @@ class Generic_Node(Node):
         # latency = -1 if delete a link
         if latency == -1 and neighbor in self.neighbors:
 
-            self.neighbors.remove(neighbor)
+          self.neighbors.remove(neighbor)
         else:
             self.neighbors.append(neighbor)
             # self.send_to_neighbors("hello")
