@@ -1,4 +1,6 @@
 from simulator.node import Node
+
+import json
 # Link State psuedocode
 '''
 LINK STATE PSUEDOCODE
