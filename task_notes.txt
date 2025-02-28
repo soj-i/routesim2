@@ -1,0 +1,66 @@
+Link-state flooding notes:
+    - message must include: src, dest, cost, sequence number
+    - sequence number incremented when specific link changes (linkHasBeenUpdated) *and when link has been deleted*
+    - must implement dijkstra's
+
+    - adjacent node (of each link) must:
+        - increment the link's sequence number
+
+    - a simple implementation of Djikstra's algorithm without a priority queue is fine
+
+
+Event Time Queue notes:
+    - heapq
+    - q = [], Current_Time = 0
+    - functions:
+        - Post: push event to queue 
+        - Get_Earliest: * if queue isn't empty: pops, return, event, updates event's curr_time
+                        * else return None
+        - Get_Current_Time: ret event's curr time
+        - Str: prints queue events
+
+        
+Distance vector notes:
+    - potential issue: count to infinity
+
+        - what: two or more nodes are cut off from the rest of the network
+                they'll try to route through each other until their dist = INF.
+                nodes can be cut off into a 3+ island, so "poisoned reverse" solution will not work.
+
+        - solution: distance vectors should include the full routing path for each destination
+                    (like AS_PATH in BGP). each entry in the DV should also 
+                    include a list (or set) of nodes that are involved in the path.
+
+        - how it works: allow nodes to avoid choosing routes that would form loops,
+                        preventing counts to INF
+
+
+
+    - reverse vs. deepcopy:
+        - NOTE: you must use a deep copy if you are constructing an AS_PATH based on other AS_PATH
+
+        - by reference:              - deep copy:       
+            >>> a = [1, 2, 3]           >>> import copy
+            >>> b = a                   >>> a = [1, 2, 3]
+            >>> b.insert(0, 4)          >>> b = copy.deepcopy(a)
+            >>> print(a)                >>> b.insert(0, 5)
+            [4, 1, 2, 3]                >>> print(a)
+                                        [1, 2, 3]
+                                        >>> print(b)
+                                        [5, 1, 2, 3]
+    - out of order delivery
+        - how?: you can send a DV on a link w/ latency 10 that, one second later, has latency 5.
+                if you send an updated DV, the update will come before the original
+        
+        - solution: add a sequence number (or just a timestamp) to DVs, so
+                    that you always keep the one that was sent latest, not necessarily received latest
+        
+    - implementation tips:
+        - use lists/dictionaries
+        - represent links with the frozenset python object.
+            - frozenset: 
+                - immutable (i.e. set([1,2]) != set([2,1]))
+                - allows for sets to be dictionary keys
+
+
+    testing
