@@ -169,9 +169,12 @@ class Link_State_Node(Node):
     # Return a neighbor, -1 if no path to destination
     def get_next_hop(self, destination):
         path, cost  = self.dijkstras(destination)
+        xprint = []
         if path is not None:
-            print("this is what's returned", path)
+            # print("this is what's returned", path)
+            xprint.append(path[0])
             return path[0]
+        print(xprint)
         # print("get_next_hop, ", destination)
         return -1
     
@@ -206,6 +209,7 @@ class Link_State_Node(Node):
         # neighbors = []
 
         while len(my_heap) > 0:
+            my_heap = sorted(my_heap, key=lambda d: d[1])
             minnode = heapq.heappop(my_heap)
             minnode_id = minnode[0]
             minnode_cost = minnode[1]
@@ -244,7 +248,7 @@ class Link_State_Node(Node):
                         # if link_src not in visited and [link_src, link_cost] not in neighbors:
                         # neighbors.append([link_src, link_cost])
                         neighbor = s
-                        print("neighbors ",s )
+                        # print("neighbors ",s )
                         # visited.add(link_src)
                         # print("neighbors ", [link_src, link_cost] )
                     # print("whats goingon", neighbor)
@@ -271,7 +275,7 @@ class Link_State_Node(Node):
                             my_heap = sorted(my_heap, key=lambda d: d[1])
                             # heapq.heappush(my_heap, )
                             # visited.add(neighbor[0])
-                            # print("minnode pth", minnode_path)
+                            print("     path", minnode_path + [neighbor])
                             dist[neighbor] = new_cost
                             # visited.add(neighbor)
                             
