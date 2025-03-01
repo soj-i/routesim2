@@ -2,6 +2,7 @@ from simulator.node import Node
 
 import json
 import heapq
+import math
 # Link State psuedocode
 '''
 LINK STATE PSUEDOCODE
@@ -29,16 +30,10 @@ Process.
 5. eventually A will get this message back, at this point the message can be ignored.
 
 '''
-# class Link():
-#     def __init__(self, src: int, dst: int, cost: int):
-#         self.src = src
-#         self.dst = dst
-#         self.seq_num = 0
-#         self.cost = cost
-    
-#     def decode(self, m: str):
-#         message = json.load(m)
-    
+class Links:
+    def __init__(self, cost: int, seq_num: int):
+        self.cost = cost
+        self.seq_num = seq_num
     
 
 
@@ -46,150 +41,285 @@ class Link_State_Node(Node):
     def __init__(self, id):
         super().__init__(id)
         self.links = {}
+        
         # self.seq_num = 0
 
     # Return a string
     def __str__(self):
-        return "Rewrite this function to define your node dump printout"
+        message = {}
+        for fzset, mes in self.links.items():
+            src = tuple(fzset)[0]
+            dst = 0
+            if src == self.id:
+                dst = tuple(fzset)[1]
+            else:
+                src = tuple(fzset)[1]
+                dst = tuple(fzset)[0]
+            message[str((src, dst))] = mes
+        m = json.dumps(message)
+        return m
+        
 
     # Fill in this function
     def link_has_been_updated(self, neighbor, latency):
+        # print("         add_node")
         # latency = -1 if delete a link
         # print("link updated, ", neighbor, ".")
         if latency == -1 and neighbor in self.neighbors:
             self.neighbors.remove(neighbor)
         else:
             # add the new link to the link list
-            message = {}
+            message = []
 
             if frozenset((self.id, neighbor)) in self.links: # if exists
-                # print("Key 'a' exists")
-                # print("Does exist", frozenset((self.id, neighbor)))
-                seq_num = self.links[frozenset((self.id, neighbor))]["seq_num"]
+                seq_num = self.links[frozenset((self.id, neighbor))][2]
                 seq_num +=1 
-                message = {"src": self.id, "dst": neighbor, "seq_num": seq_num, "cost": latency}
+                # message format: src, dst, seq_num, cost
+                message = [self.id, neighbor, seq_num, latency]
                 self.links[frozenset((self.id, neighbor))] = message
                 # print(self.links)
 
             else: # doesn't exist
-                message = {"src": self.id, "dst": neighbor, "seq_num": 0, "cost": latency}
-
-                # print("Does not exist ", frozenset((self.id, neighbor)))
+                message = [self.id, neighbor, 0, latency]
 
                 self.links[frozenset((self.id, neighbor))] = message
-                # print(self.links)
+            
+            self.propagate()
 
-            # turn into string
-            s_message = json.dumps(message)
-            # print("this is string message", s_message)
-            self.send_to_neighbors(s_message)
-            # print(self.links[frozenset((self.id, neighbor))])
-
-            # self.last_message.append(message)
-            # self.seq_num += 1
-            # print("adding: ", self.id)
-            # print("this is last_message", self.link)
-            # message = [self.id, neighbor, seq_num, latency]
+            # # turn into string
+            # # print("this is string message", s_message)
+            # self.send_to_neighbors(s_message)
+            # ge = set()
+            # for neighbor in self.links.items():
+            #     ge.add(neighbor[1]["src"])
+            #     ge.add(neighbor[1]["dst"])
+            # print("ge", ge)
+            # for g in ge:
+            #     self.send_to_neighbors(s_message)
+    def propagate(self):
+        message = {}
+        for fzset, mes in self.links.items():
+            src = tuple(fzset)[0]
+            dst = 0
+            if src == self.id:
+                dst = tuple(fzset)[1]
+            else:
+                src = tuple(fzset)[1]
+                dst = tuple(fzset)[0]
+            message[str((src, dst))] = mes
+        m = json.dumps(message)
+        self.send_to_neighbors(m)
 
     # Fill in this function
     def process_incoming_routing_message(self, m):
-        new_link = json.loads(m)
-        # if incoming information exists in self.link and has a newer sequence number
-        # or if information doesn't exist in self.link
-        # then send to the other nodes.
-        new_seq = new_link["seq_num"]
-        new_src = new_link["src"]
-        new_dst = new_link["dst"]
-        new_cost = new_link["cost"]
+        # print("         add_link")
+        new_links = json.loads(m)
+        need_to_update = False
 
-        new_frozenset = frozenset((new_src, new_dst))
+        # loop through 
+        for fzset, mes in new_links.items():
+            s,d = fzset.split(',')
+            s = int(s[1:])
+            d = int(d[:-1])
+            # frozenset((s,d))
 
-        if new_frozenset in self.links and new_seq > self.links[new_frozenset]["seq_num"] or new_frozenset not in self.links: # send to other nodes
-            # print("send new information", new_link)
-            # update self.links
-            message = {"src": new_src, "dst": new_dst, "seq_num": new_seq, "cost": new_cost}
-            self.links[new_frozenset] = message
-            s_message = json.dumps(message)
+            seq_num = mes[2]
+            cost = mes[3]
+            # print(seq_num, cost)
 
-            self.send_to_neighbors(s_message)
-        # print("no new information", new_link, ".")
+            new_frozenset = frozenset((s, d))
+            if new_frozenset in self.links and seq_num > self.links[new_frozenset][2] or new_frozenset not in self.links:
+                message = [s,d,seq_num,cost]
+                self.links[new_frozenset] = message
+                # update neighbors
+
+                self.propagate()
+
+
+
+        # #     print("link: ", fzset)
+        # new_seq = new_link["seq_num"]
+        # new_src = new_link["src"]
+        # new_dst = new_link["dst"]
+        # new_cost = new_link["cost"]
+        # # self.links = new_links
+        # # if incoming information exists in self.link and has a newer sequence number
+        # # or if information doesn't exist in self.link
+        # # then send to the other nodes.
+
+        # new_frozenset = frozenset((new_src, new_dst))
+
+        # if new_frozenset in self.links and new_seq > self.links[new_frozenset]["seq_num"] or new_frozenset not in self.links: # send to other nodes
+        #     # print("send new information", new_link)
+        #     # update self.links
+        #     message = {"src": new_src, "dst": new_dst, "seq_num": new_seq, "cost": new_cost}
+        #     self.links[new_frozenset] = message
+        #     s_message = json.dumps(message)
+        #     # print("THIS NODE: ", self.id, self.links)
+
+        #     self.send_to_neighbors(s_message)
+        #     ge = set()
+        #     for neighbor in self.links.items():
+        #         ge.add(neighbor[1]["src"])
+        #         ge.add(neighbor[1]["dst"])
+        #     for g in ge:
+        #         self.send_to_neighbors(self.links)
+        # # print("no new information", new_link, ".")
 
     # Return a neighbor, -1 if no path to destination
     def get_next_hop(self, destination):
         path, cost  = self.dijkstras(destination)
+        xprint = []
         if path is not None:
-            print("this is what's returned", path)
+            # print("this is what's returned", path)
+            xprint.append(path[0])
             return path[0]
+        print(xprint)
         # print("get_next_hop, ", destination)
         return -1
+    
+    def nnodes(self):
+        numb = set()
+        for _, mes in self.links.items():
+            # print("THIS IS LINK", links)
+            numb.add(mes[0])
+            numb.add(mes[1])
+        return len(numb), numb
+
 
     def dijkstras(self, dst: int):
-        print("THIS IS DEST, ", dst)
-        graph = {}
+        # print("THIS IS SRC, DST ", self.id, dst)
         my_heap = []
+        len_nodes, unvisitednodes = self.nnodes()
+        print("   Graph:", unvisitednodes)
+        # visited = set()
+        dist = {}
+        prev = {}
+        node_obj = [self.id, 0, []]
+        heapq.heappush(my_heap, node_obj)
+        # src, cost, path
+        
 
-        node_obj = {"src": self.id, "cost": 0, "path": []}
+        # for node in unvisitednodes:
+        #     dist[node] = float('inf')
+        #     prev[node] = None
 
-        s_obj = json.dumps(node_obj)
-
-        heapq.heappush(my_heap, s_obj)
-
-        # add source to the graph
-        graph[self.id] = 0
+        dist[self.id] = 0
+        # visited.add(self.id)
+        # neighbors = []
 
         while len(my_heap) > 0:
-            head = heapq.heappop(my_heap)
+            my_heap = sorted(my_heap, key=lambda d: d[1])
+            minnode = heapq.heappop(my_heap)
+            minnode_id = minnode[0]
+            minnode_cost = minnode[1]
+            minnode_path = minnode[2]
 
-            l = json.loads(head)
-            # print("this is head ,then l", head, l)
+            if minnode_id == dst:
+                return minnode_path, minnode_cost
+            neighbors = []
 
-            h_id = l["src"]
-            h_cost = l["cost"]
-            h_path = l["path"]
+            for fzset, mes in self.links.items():
+                # print("this is link", fzset, mes)
+                s = tuple(fzset)[0]
+                d = tuple(fzset)[1]
+                # frozenset((s,d))
 
-            # print("this is id, cost, path", h_id, h_cost, h_path)
-            # if the source is the destination
-            if h_id == dst:
-                return h_path, h_cost
+                seq_num = mes[2]
+                cost = mes[3]
             
-            for link in self.links.items():
+
+                # print("this is src, dst, seq, cost", link_src, link_dst, link_seq, link_cost)
                 
-            #     print("this is link", link)
-                link_src = link[1]["src"]
-                link_dst = link[1]["dst"]
-                link_seq = link[1]["seq_num"]
-                link_cost = link[1]["cost"]
-
-                print("this is src, dst, seq, cost", link_src, link_dst, link_seq, link_cost)
-
-                if link_cost < 0:
+                if cost < 0:
                     pass
                 else:
                     neighbor = None
-
-                    if link_src == h_id:
-                        neighbor = link_dst
-                    elif link_dst == h_id:
-                        neighbor = link_src
+                    if s == minnode_id:
+                        # # print("only once")
+                        # # if prev[link_src] != link_dst and [link_dst, link_cost] not in neighbors:
+                        # # if link_dst not in visited and [link_dst, link_cost] not in neighbors:
+                        # neighbors.append([link_dst, link_cost])
+                        neighbor = d
+                        # print("neighbors ",d )
+                    elif d == minnode_id:
+                        # print("only once")
+                        # if prev[link_dst] != link_src and [link_src, link_cost] not in neighbors:
+                        # if link_src not in visited and [link_src, link_cost] not in neighbors:
+                        # neighbors.append([link_src, link_cost])
+                        neighbor = s
+                        # print("neighbors ",s )
+                        # visited.add(link_src)
+                        # print("neighbors ", [link_src, link_cost] )
                     # print("whats goingon", neighbor)
 
-            #         # if the neighbor is not None and the key is not already in the graph, or link_cost + h_cost less than the distance 
-            #         # of the neighbor's path
                     if neighbor is not None:
-                        if neighbor not in graph or link_cost + h_cost < graph[neighbor]:
-                            print("neighbor added neighbor, link", neighbor, link, h_path)
+                        # neighbors = sorted(neighbors, key=lambda x: x[1])
+                        # print("lisf of neighbors [id, cost]", neighbors)
+                        # visited.add(neighbor)
+                        # neighbor = [id, link cost]
+                        # for neighbor in neighbors: 
+                        new_cost = cost + minnode_cost
+                        if neighbor not in dist or new_cost < dist[neighbor]:
+                            # print("costs: ", neighbor[1] + dist[minnode_id], "smaller than ", dist[neighbor[0]])
+                            # print("neighbor added self.id, neighbor", self.id, neighbor )
+                            # dist[neighbor[0]] = neighbor[1] + dist[minnode_id]
+                            # prev[neighbor[0]] = minnode_id
+                            # upate the heap
                             
-                            node_obj = {"src": neighbor, "cost": link_cost + h_cost, "path": h_path + [neighbor]}
+                            node_obj = [neighbor, new_cost, minnode_path + [neighbor]]
+                            # neighbors.append(node_obj)
+                            # neighbors = sorted(neighbors, key=lambda x: x[1])
 
-                            s_obj = json.dumps(node_obj)
+                            heapq.heappush(my_heap, node_obj)
+                            my_heap = sorted(my_heap, key=lambda d: d[1])
+                            # heapq.heappush(my_heap, )
+                            # visited.add(neighbor[0])
+                            print("     path", minnode_path + [neighbor])
+                            dist[neighbor] = new_cost
+                            # visited.add(neighbor)
+                            
+        
+            # print("distances: [node, dist]", dist)
+            # print("prev: [node, prevnode]", prev)
+            # for node in dist.keys():
+            #     if dist[node] == float('inf'): #disregard
+            #         # print("some inf")
+            #         continue
+            #     path = []
+            #     if node == self.id: # if this is the end, then end.
+            #         # print("node == self.id", node, self.id)
+            #         continue
+            #     curr = node
 
-                            heapq.heappush(my_heap, s_obj)
-
-            #                 #update the information in the graph
-                            graph[neighbor] = link_cost + h_cost
-                            print("link costs", link_cost+h_cost, graph)
-
+            #     while curr != None:
+            #         # path.insert(0, curr)
+            #         # print("curr", curr)
+            #         path.append(curr)
+            #         curr = prev[curr]
+            # path = path[::-1]
+            # # print("path: ", path)
         return None
+
+        #                 # src, cost, path
+        #                 node_obj = [neighbor, link_cost + dist[minnode_id], h_path + [neighbor]]
+
+        #                 heapq.heappush(my_heap, node_obj)
+
+        #                 # my_heap = sorted(my_heap,key=self.keyfunc(node_obj))
+        #                 my_heap = sorted(my_heap, key=lambda d: d[1])
+
+        # #                 #update the information in the graph
+        #                 graph[neighbor] = link_cost + graph[h_id]
+                        
+        #                 prev[neighbor] = h_id
+        #                 # print("link costs", link_cost+h_cost, graph)
+        #                 print("current graph", graph)
+        #                 print("current prev: ", prev)
+        #                 print("current heap: ", my_heap)
+                    # 
+
+
 
 
 
