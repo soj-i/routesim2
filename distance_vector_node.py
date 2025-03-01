@@ -42,6 +42,13 @@ class Distance_Vector_Node(Node):
         '''
         "Rewrite this function to define your node dump printout"
         return "A DV Node: " + str(self.id) + "\n"
+        '''
+        is called to when the simulation wants to print a representation of the node's state for debugging.
+        This is not essential, but it may be helpful to implement this function so that DUMP_NODE events print
+        sensible information. This function should return a string.
+        '''
+        "Rewrite this function to define your node dump printout"
+        return "A DV Node: " + str(self.id) + "\n"
 
     # Fill in this function
     
